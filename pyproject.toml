@@ -1,0 +1,13 @@
+[project]
+name = "resume-extraction"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "google-adk>=1.24.1",
+    "langchain>=1.2.9",
+    "langgraph>=1.0.8",
+    "mistralai>=1.12.0",
+    "python-dotenv>=1.2.1",
+]
