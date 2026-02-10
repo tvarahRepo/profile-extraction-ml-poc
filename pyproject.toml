@@ -5,9 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "datauri>=1.0.0",
     "google-adk>=1.24.1",
     "langchain>=1.2.9",
+    "langchain-google-genai>=4.2.0",
+    "langchain-openai>=1.1.8",
     "langgraph>=1.0.8",
     "mistralai>=1.12.0",
+    "pillow>=12.1.0",
+    "pydantic>=2.12.5",
     "python-dotenv>=1.2.1",
+    "streamlit>=1.54.0",
 ]
