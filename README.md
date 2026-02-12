@@ -125,19 +125,6 @@ The pipeline is a **LangGraph StateGraph** defined in `src/graph/workflow.py`:
 - **Reducer** — `judge_results` uses `operator.add` so parallel branches append results without overwriting
 - **Convergence** — `aggregate_results` fires only after all judge nodes complete
 
-### State Schema
-
-```python
-class GraphState(TypedDict):
-    mode: str                    # "resume_only" | "jd_only" | "both"
-    resume_file_path: str | None
-    jd_file_path: str | None
-    resume_markdown: str | None
-    jd_markdown: str | None
-    resume_data: ResumeData | None
-    jd_data: JobDescription | None
-    judge_results: Annotated[list[dict], operator.add]
-```
 
 ## License
 
