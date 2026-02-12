@@ -123,7 +123,7 @@ The pipeline is a **LangGraph StateGraph** defined in `src/graph/workflow.py`:
 - **Routing** — `route_inputs()` inspects the `mode` field and returns `Send` objects to fan out to the appropriate branch(es)
 - **Parallel execution** — In "Both" mode, resume and JD branches run concurrently in the same superstep
 - **Reducer** — `judge_results` uses `operator.add` so parallel branches append results without overwriting
-- **Convergence** — `aggregate_results` fires only after all judge nodes complete
+- **Reflection** — `reflection_path` Retries the node which caused the failure
 
 
 ## License
