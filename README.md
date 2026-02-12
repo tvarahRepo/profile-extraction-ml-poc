@@ -18,7 +18,7 @@ When processing both documents, the resume and JD branches run **in parallel** a
 
 ```
                     START
-                      │
+                      |
                 [route_inputs]
                  /    │    \
           resume    both    jd

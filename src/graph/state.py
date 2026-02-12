@@ -8,6 +8,7 @@ from src.validation_models.jd import JobDescription
 class GraphState(TypedDict):
     # --- Inputs (set at invocation) ---
     mode: str  # "resume_only" | "jd_only" | "both"
+    reflection_loop: int
     resume_file_path: Optional[str]
     jd_file_path: Optional[str]
     # --- Intermediate: OCR markdown ---

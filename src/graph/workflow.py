@@ -1,5 +1,8 @@
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
+from PIL import Image
+from langchain_core.runnables.graph import MermaidDrawMethod
+import io
 
 from src.graph.state import GraphState
 
@@ -19,7 +22,7 @@ def route_inputs(state: GraphState) -> list[Send]:
     return sends
 
 
-# --- Resume Branch Nodes ---
+########## Resume Branch Nodes #########
 
 def ocr_resume(state: GraphState) -> dict:
     from src.ocr import upload_file, get_ocr_response
@@ -37,23 +40,24 @@ def parse_resume(state: GraphState) -> dict:
     result = chain.invoke({"resume_markdown": state["resume_markdown"]})
     return {"resume_data": result}
 
+#####################################################
 
-def judge_resume(state: GraphState) -> dict:
-    from src.chains.judge_chain import get_judge_chain
+# def judge_resume(state: GraphState) -> dict:
+#     from src.chains.judge_chain import get_judge_chain
 
-    chain = get_judge_chain()
-    result = chain.invoke({
-        "markdown": state["resume_markdown"],
-        "jsondata": state["resume_data"].model_dump_json(indent=4),
-    })
-    return {
-        "judge_results": [
-            {"source": "resume", "grade": result.grade, "summary": result.grade_summary}
-        ]
-    }
+#     chain = get_judge_chain()
+#     result = chain.invoke({
+#         "markdown": state["resume_markdown"],
+#         "jsondata": state["resume_data"].model_dump_json(indent=4),
+#     })
+#     return {
+#         "judge_results": [
+#             {"source": "resume", "grade": result.grade, "summary": result.grade_summary}
+#         ]
+#     }
 
 
-# --- JD Branch Nodes ---
+############## JD Branch Nodes #####################
 
 def ocr_jd(state: GraphState) -> dict:
     from src.ocr import upload_file, get_ocr_response
@@ -70,28 +74,76 @@ def parse_jd(state: GraphState) -> dict:
     chain = get_jd_chain()
     result = chain.invoke({"job_description_markdown": state["jd_markdown"]})
     return {"jd_data": result}
+#################################################################
 
-
-def judge_jd(state: GraphState) -> dict:
+def llm_as_judge(state: GraphState) -> dict:
     from src.chains.judge_chain import get_judge_chain
 
     chain = get_judge_chain()
-    result = chain.invoke({
-        "markdown": state["jd_markdown"],
-        "jsondata": state["jd_data"].model_dump_json(indent=4),
-    })
-    return {
-        "judge_results": [
-            {"source": "jd", "grade": result.grade, "summary": result.grade_summary}
-        ]
-    }
+
+    if state['mode'] == 'resume_only':
+        result = chain.invoke({
+            "markdown": state["resume_markdown"],
+            "jsondata": state["resume_data"].model_dump_json(indent=4),
+        })
+        return {
+            "judge_results": [
+                {"source": "resume", "grade": result.grade, "summary": result.grade_summary}
+            ]
+        }
+    elif state['mode'] == 'jd_only':
+        result = chain.invoke({
+            "markdown": state["jd_markdown"],
+            "jsondata": state["jd_data"].model_dump_json(indent=4),
+        })
+        return {
+            "judge_results": [
+                {"source": "jd", "grade": result.grade, "summary": result.grade_summary}
+            ]
+        }
+    else:
+        result_resume = chain.invoke({
+            "markdown": state["resume_markdown"],
+            "jsondata": state["resume_data"].model_dump_json(indent=4),
+        })
+        
+
+        result_jd = chain.invoke({
+            "markdown": state["jd_markdown"],
+            "jsondata": state["jd_data"].model_dump_json(indent=4),
+        })
+        return {
+            "judge_results": [
+                {"source": "jd", "grade": result_jd.grade, "summary": result_jd.grade_summary},
+                {"source": "resume", "grade": result_resume.grade, "summary": result_resume.grade_summary}
+            ]
+        }
+
 
 
 # --- Convergence ---
 
-def aggregate_results(state: GraphState) -> dict:
-    """Convergence node. State already contains all results via reducers."""
-    return {}
+# def aggregate_results(state: GraphState) -> dict:
+#     """Convergence node. State already contains all results via reducers."""
+#     return {}
+
+def reflection(state: GraphState) -> dict:
+
+    judge_results = state['judge_results']
+    if len(judge_results) == 1:
+        if judge_results[0]['grade'] == 'FAIL':
+            return judge_results[0]['source']
+        elif judge_results[0]['grade'] == 'PASS':
+            return "end"
+        
+    elif len(judge_results) >1:
+        if "FAIL" in list(judge_results[0]['grade'],judge_results[1]['grade']):
+            return "both"    
+        else:
+            "end"
+
+
+
 
 
 # --- Graph Builder ---
@@ -104,24 +156,32 @@ def build_graph():
     graph.add_node("ocr_jd", ocr_jd)
     graph.add_node("parse_resume", parse_resume)
     graph.add_node("parse_jd", parse_jd)
-    graph.add_node("judge_resume", judge_resume)
-    graph.add_node("judge_jd", judge_jd)
-    graph.add_node("aggregate_results", aggregate_results)
+    graph.add_node("llm_as_judge", llm_as_judge)
+    #graph.add_node("judge_jd", judge_jd)
+    #graph.add_node("aggregate_results", aggregate_results)
 
     # Routing from START
     graph.add_conditional_edges(START, route_inputs)
 
     # Resume branch: ocr -> parse -> judge -> aggregate
     graph.add_edge("ocr_resume", "parse_resume")
-    graph.add_edge("parse_resume", "judge_resume")
-    graph.add_edge("judge_resume", "aggregate_results")
+    graph.add_edge("parse_resume", "llm_as_judge")
+    #graph.add_edge("judge_resume", "aggregate_results")
 
     # JD branch: ocr -> parse -> judge -> aggregate
     graph.add_edge("ocr_jd", "parse_jd")
-    graph.add_edge("parse_jd", "judge_jd")
-    graph.add_edge("judge_jd", "aggregate_results")
+    graph.add_edge("parse_jd", "llm_as_judge")
+    #graph.add_edge("judge_jd", "aggregate_results")
 
     # End
-    graph.add_edge("aggregate_results", END)
-
+    graph.add_edge("llm_as_judge", END)
+    app = graph.compile()
+    img = app.get_graph().draw_mermaid_png(draw_method=MermaidDrawMethod.API)
+    img = Image.open(io.BytesIO(img))
+    print(img.size)
+    img.save('D:\\Tvarah\\resume_extraction\\src\\graph.png')
     return graph.compile()
+
+
+if __name__ == "__main__":
+    build_graph()
