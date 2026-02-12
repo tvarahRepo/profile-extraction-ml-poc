@@ -103,28 +103,6 @@ resume_extraction/
 └── data/                           # Sample documents (gitignored)
 ```
 
-## What Gets Extracted
-
-### From Resumes
-
-| Section | Fields |
-|---------|--------|
-| Personal Info | name, date of birth, gender, nationality, work authorization |
-| Contact Info | emails, phones, country code, city, state, country, postal address |
-| Education | institution, degree, field, specialisation, level, dates, GPA, mode |
-| Work Experience | company, location, title, type, dates, is_current, description |
-| Skills | programming languages, frameworks, tools, databases, cloud, soft skills, domain skills, certifications |
-
-### From Job Descriptions
-
-| Section | Fields |
-|---------|--------|
-| Role Metadata | title, company, salary range |
-| Mandatory Skills | programming languages, frameworks, tools, databases, cloud |
-| Optional Skills | flat list of "nice to have" skills |
-| Requirements | min years experience, degree required |
-| Responsibilities | top 3-5 summarized responsibilities |
-
 ## Tech Stack
 
 | Component | Technology |
