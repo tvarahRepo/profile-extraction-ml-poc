@@ -62,6 +62,7 @@ if st.button("Extract", type="primary"):
     with st.spinner("Processing..."):
         result = graph.invoke({
             "mode": mode_map[mode],
+            "reflection_loop": 0,
             "resume_file_path": resume_path,
             "jd_file_path": jd_path,
             "resume_markdown": None,
@@ -82,10 +83,23 @@ if st.button("Extract", type="primary"):
         st.subheader("JD Extraction")
         st.json(result["jd_data"].model_dump())
 
+    # --- Judge Results ---
+    judge_results = result.get("judge_results", [])
+    retried = result.get("reflection_loop", 0) > 0
+
     st.subheader("Judge Results")
-    for jr in result.get("judge_results", []):
-        icon = "✅" if jr["grade"].lower() == "pass" else "❌"
-        st.write(f"{icon} **{jr['source'].upper()}**: {jr['grade']} — {jr['summary']}")
+
+    if retried:
+        st.info("Judge detected issues on the first pass. The pipeline re-processed and re-evaluated.")
+
+    # Show only the final judge verdict per source (last occurrence wins)
+    final_verdicts = {}
+    for jr in judge_results:
+        final_verdicts[jr["source"]] = jr
+
+    for source, jr in final_verdicts.items():
+        icon = "✅" if jr["grade"].upper() == "PASS" else "❌"
+        st.write(f"{icon} **{source.upper()}**: {jr['grade']} — {jr['summary']}")
 
     # Cleanup temp files
     if resume_path and os.path.exists(resume_path):

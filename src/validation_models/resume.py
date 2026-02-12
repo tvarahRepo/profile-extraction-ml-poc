@@ -48,7 +48,7 @@ class educationInfo(BaseModel):
 
 
 class workExperienceInfo(BaseModel):
-    company_name: str = Field(..., description="Company name of the candidate")
+    company_name: str | None= Field(default=None, description="Company name of the candidate")
     company_location: str | None = Field(default=None, description="Location of the company, if not present then return None")
     job_title: str | None = Field(default=None, description="Job title of the candidate, if not present then return None")
     employment_type: str | None = Field(default=None, description="Employment type of the candidate with respect to the company, \
@@ -56,7 +56,7 @@ class workExperienceInfo(BaseModel):
     start_date: str | None = Field(default=None, description="Start date of the role, if not present then return None")
     end_date: str | None = Field(default=None, description="End date of the role, if not present then return None")
     is_current_role: str | None = Field(default=None, description="Yes, if the candidate is currently working in the role, if not present then return None")
-    role_description: str = Field(..., description="Role description of the role, \
+    role_description: str | None = Field(default=None, description="Role description of the role, \
         This should be a brief summary of the role and responsibilities,not more than 200words.")
 
 
